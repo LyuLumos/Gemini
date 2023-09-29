@@ -20,9 +20,7 @@ class StrToBytes:
 
 def read_cfg():
     all_function_dict = {}
-    counts = []
     for a in config.arch:
-        count = 0
         for v in config.version:
             for c in config.compiler:
                 for o in config.optimizer:
@@ -31,18 +29,15 @@ def read_cfg():
                     with open(filepath, "r") as f:
                         picklefile = pickle.load(StrToBytes(f))
                     for func in picklefile.raw_graph_list:
-                        print(func.funcname)
-                        print(func.g)
-                        break
                         if len(func.g) < config.min_nodes_threshold:
                             continue
                         if all_function_dict.get(func.funcname) == None:
                             all_function_dict[func.funcname] = []
                         all_function_dict[func.funcname].append(func.g)
-                        count += 1
-        counts.append(count)
-    print("for three arch:", counts)
-
+    for funcname in all_function_dict.keys():
+        if len(all_function_dict[funcname]) < 2:
+            del all_function_dict[funcname]
+    print(f'function num: {len(all_function_dict)}')
     return all_function_dict
 
 
@@ -102,33 +97,31 @@ class GeminiDataset(Dataset):
     def __getitem__(self, idx):
         funcname = self.funcname_list[idx]
         func_list = self.func_dict[funcname]
-        if len(func_list) < 2:
-            print(f'funcname: {funcname} has only one graph')
-            return None
+        # if len(func_list) < 2:
+        #     print(f'funcname: {funcname} has only one graph')
+        #     return None
         for i, g in enumerate(func_list):
             g_adjmat = zero_padded_adjmat(g, config.max_nodes)
             g_featmat = feature_vector(g, config.max_nodes)
-            for j in random.randint(0, 1):
-                if j == 0:
-                    g1_index = np.random.randint(
-                        low=0, high=len(func_list))
-                    while g1_index == i:
-                        g1_index = np.random.randint(
-                            low=0, high=len(func_list))
-                    g1 = func_list[g1_index]
-                    g1_adjmat = zero_padded_adjmat(g1, config.max_nodes)
-                    g1_featmat = feature_vector(g1, config.max_nodes)
-                    return g_adjmat, g_featmat, g1_adjmat, g1_featmat, 1
-                else:
-                    index = np.random.randint(low=0, high=len(self.funcname_list))
-                    while self.funcname_list[index] == funcname:
-                        index = np.random.randint(low=0, high=len(self.funcname_list))
-                    g2_index = np.random.randint(
-                        low=0, high=len(self.func_dict[self.funcname_list[index]]))
-                    g2 = self.func_dict[self.funcname_list[index]][g2_index]
-                    g2_adjmat = zero_padded_adjmat(g2, config.max_nodes)
-                    g2_featmat = feature_vector(g2, config.max_nodes)
-                    return g_adjmat, g_featmat, g2_adjmat, g2_featmat, -1
+            random.seed(42)
+            if random.randint(0, 1) % 2 == 0:
+                g1_index = np.random.randint(0, len(func_list))
+                while g1_index == i:
+                    g1_index = np.random.randint(0, len(func_list))
+                g1 = func_list[g1_index]
+                g1_adjmat = zero_padded_adjmat(g1, config.max_nodes)
+                g1_featmat = feature_vector(g1, config.max_nodes)
+                return g_adjmat, g_featmat, g1_adjmat, g1_featmat, 1
+            else:
+                index = np.random.randint(0, len(self.funcname_list))
+                while self.funcname_list[index] == funcname:
+                    index = np.random.randint(0, len(self.funcname_list))
+                g2_index = np.random.randint(
+                    0, len(self.func_dict[self.funcname_list[index]]))
+                g2 = self.func_dict[self.funcname_list[index]][g2_index]
+                g2_adjmat = zero_padded_adjmat(g2, config.max_nodes)
+                g2_featmat = feature_vector(g2, config.max_nodes)
+                return g_adjmat, g_featmat, g2_adjmat, g2_featmat, -1
 
 
 def dataloader_generate():
@@ -144,6 +137,7 @@ def dataloader_generate():
     print(f'train dataset size: {len(train_dataset)}, test dataset size: {len(test_dataset)}, valid dataset size: {len(valid_dataset)}')
     print(f'train dataloader size: {len(train_dataloader)}, test dataloader size: {len(test_dataloader)}, valid dataloader size: {len(valid_dataloader)}')
     return train_dataloader, test_dataloader, valid_dataloader
+
 
 if __name__ == '__main__':
     all_func_dict = read_cfg()

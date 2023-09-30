@@ -34,11 +34,9 @@ def read_cfg():
                         if all_function_dict.get(func.funcname) == None:
                             all_function_dict[func.funcname] = []
                         all_function_dict[func.funcname].append(func.g)
-    for funcname in all_function_dict.keys():
-        if len(all_function_dict[funcname]) < 2:
-            del all_function_dict[funcname]
-    print(f'function num: {len(all_function_dict)}')
-    return all_function_dict
+    new_all_function_dict = {k: v for k, v in all_function_dict.items() if len(v) >= 2}
+    print(f'function num: {len(new_all_function_dict)}')
+    return new_all_function_dict
 
 
 def dataset_split(all_function_dict):
@@ -47,10 +45,12 @@ def dataset_split(all_function_dict):
     test_size = int(len(all_func_list) * 0.1)
     valid_size = len(all_func_list) - train_size - test_size
     train_func, test_func, valid_func = random_split(all_func_list, [train_size, test_size, valid_size])
+    for type, dataset in zip(["train", "test", "valid"], [train_func, test_func, valid_func]):
+        with open(config.Gemini_dataset_dir + type, "wb") as f:
+            pickle.dump(dict(dataset), f)
     print(
-        f"train dataset's num ={len(train_func)} ,valid dataset's num={len(valid_func)} , test dataset's num ={len(test_func)}"
+        f"train dataset's num={len(train_func)} , valid dataset's num={len(valid_func)} , test dataset's num ={len(test_func)}"
     )
-
 
 def adjmat(gr):
     return nx.adjacency_matrix(gr).toarray().astype('float32')
@@ -88,7 +88,7 @@ class GeminiDataset(Dataset):
     def __init__(self, type):
         assert type in ["train", "test", "valid"], "dataset type error!"
         filepath = config.Gemini_dataset_dir + type
-        self.func_dict = torch.load(filepath)
+        self.func_dict = pickle.load(open(filepath, "rb"))
         self.funcname_list = list(self.func_dict.keys())
 
     def __len__(self):
@@ -97,13 +97,11 @@ class GeminiDataset(Dataset):
     def __getitem__(self, idx):
         funcname = self.funcname_list[idx]
         func_list = self.func_dict[funcname]
-        # if len(func_list) < 2:
-        #     print(f'funcname: {funcname} has only one graph')
-        #     return None
         for i, g in enumerate(func_list):
             g_adjmat = zero_padded_adjmat(g, config.max_nodes)
             g_featmat = feature_vector(g, config.max_nodes)
-            random.seed(42)
+            import time
+            random.seed(time.time())
             if random.randint(0, 1) % 2 == 0:
                 g1_index = np.random.randint(0, len(func_list))
                 while g1_index == i:
@@ -113,6 +111,7 @@ class GeminiDataset(Dataset):
                 g1_featmat = feature_vector(g1, config.max_nodes)
                 return g_adjmat, g_featmat, g1_adjmat, g1_featmat, 1
             else:
+                # print("negative sample")
                 index = np.random.randint(0, len(self.funcname_list))
                 while self.funcname_list[index] == funcname:
                     index = np.random.randint(0, len(self.funcname_list))
@@ -121,7 +120,7 @@ class GeminiDataset(Dataset):
                 g2 = self.func_dict[self.funcname_list[index]][g2_index]
                 g2_adjmat = zero_padded_adjmat(g2, config.max_nodes)
                 g2_featmat = feature_vector(g2, config.max_nodes)
-                return g_adjmat, g_featmat, g2_adjmat, g2_featmat, -1
+                return g_adjmat, g_featmat, g2_adjmat, g2_featmat, 0
 
 
 def dataloader_generate():

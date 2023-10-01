@@ -48,9 +48,9 @@ def compute_graph_embedding(adjmat, feature_mat, init_embedding, W1, W2, embed_l
     return graph_embedding
 
 
-class MyModel(nn.Module):
+class Gemini(nn.Module):
     def __init__(self):
-        super(MyModel, self).__init__()
+        super(Gemini, self).__init__()
         self.embed_layer = EmbeddingLayer()
         self.W1 = nn.Parameter(torch.Tensor(
             config.embedding_size, config.Gemini_feature_size))
@@ -83,7 +83,7 @@ train_dataloader, test_dataloader, valid_dataloader = dataloader_generate()
 
 def train():
     print(f'Using device: {device}')
-    model = MyModel().to(device)
+    model = Gemini().to(device)
     optimizer = optim.Adam(model.parameters(), lr=config.learning_rate)
     criterion = nn.MSELoss()
     # from utils import EarlyStopper

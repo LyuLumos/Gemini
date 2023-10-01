@@ -28,7 +28,7 @@ mini_batch = 8
 
 
 # some params about training the network
-learning_rate = 0.001
+learning_rate = 0.0001
 epochs = 20
 step_per_epoch = 5000
 valid_step_pre_epoch = 3000

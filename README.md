@@ -1,5 +1,11 @@
 # Gemini
 
+## Introduction
+
+This is the **unoffical** code for the paper "Gemini: Neural Network-based Graph Embedding for Cross-Platform Binary Code Similarity Detection", Pytorch version.
+
+
+
 ## Data Format
 
 ```bash
@@ -24,3 +30,19 @@ DiGraph with 3 nodes and 3 edges
 [(0, 2), (1, 0), (1, 2)]
 {0: {2: {}}, 1: {0: {}, 2: {}}, 2: {}}
 ```
+
+## Performance
+
+```
+Accuracy: 0.774917, AUC: 0.876182
+```
+
+The dataset is very small (only `openssl-101f`), so the performance is not good as the paper.
+
+## CopyRight
+
+This code can only be used with the author's permission. 
+
+LyuLumos©2023 All Rights Reserved.
+
+

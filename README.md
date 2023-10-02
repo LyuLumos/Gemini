@@ -39,9 +39,31 @@ Accuracy: 0.774917, AUC: 0.876182
 
 The dataset is very small (only `openssl-101f`), so the performance is not good as the paper.
 
+## Similarity Inference
+
+A simple inference script is provided in `inference.py`. 
+
+For example, to get the similarity between `EVP_DigestInit_ex` in all `openssl-101a_arm_gcc_O3_openssl` functions, run
+
+```bash
+python inference.py 
+```
+
+And the TOP5 result is: (including the query function itself)
+
+```bash
+# FunctionName      CosineSimilarity
+EVP_DigestInit_ex   0.99999994
+EVP_DigestInit      0.98464435
+d2i_ECPrivateKey    0.97722644
+i2d_ECPrivateKey    0.9714543
+v2i_AUTHORITY_KEYID 0.9705293
+``` 
+
+
 ## CopyRight
 
-This code can only be used with the author's permission. 
+You can only use this code after obtaining the author's permission.
 
 LyuLumos©2023 All Rights Reserved.
 

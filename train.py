@@ -77,11 +77,12 @@ class Gemini(nn.Module):
         return sim_score, g1_embedding, g2_embedding
 
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-train_dataloader, test_dataloader, valid_dataloader = dataloader_generate()
+
 
 
 def train():
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    train_dataloader, test_dataloader, valid_dataloader = dataloader_generate()
     print(f'Using device: {device}')
     model = Gemini().to(device)
     optimizer = optim.Adam(model.parameters(), lr=config.learning_rate)
@@ -161,8 +162,6 @@ def train():
             print("        [Test] Epoch: %d, Loss: %f, Accuracy: %f, AUC: %f" %
                 (epoch, epoch_loss, accuracy, auc))
     
-
-
     torch.save(model.state_dict(), config.Gemini_model_save_path)
 
 

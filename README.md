@@ -33,6 +33,8 @@ DiGraph with 3 nodes and 3 edges
 
 ## Performance
 
+![](loss_curve.png)
+
 ```
 Accuracy: 0.774917, AUC: 0.876182
 ```

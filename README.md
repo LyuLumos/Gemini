@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This is the **unoffical** code for the paper "Gemini: Neural Network-based Graph Embedding for Cross-Platform Binary Code Similarity Detection", Pytorch version.
+This is the **unoffical** code for the paper "Gemini: Neural Network-based Graph Embedding for Cross-Platform Binary Code Similarity Detection", CCS 2017, Pytorch version.
 
 
 
@@ -32,6 +32,8 @@ DiGraph with 3 nodes and 3 edges
 ```
 
 ## Performance
+
+![](loss_curve.png)
 
 ```
 Accuracy: 0.774917, AUC: 0.876182
@@ -64,6 +66,10 @@ v2i_AUTHORITY_KEYID 0.9705293
 ## CopyRight
 
 You can only use this code after obtaining the author's permission.
+
+## Acknowledgment
+
+https://github.com/Yunlongs/Gemini
 
 LyuLumos©2023 All Rights Reserved.
 

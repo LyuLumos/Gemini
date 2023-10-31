@@ -61,7 +61,7 @@ class GraphEmbedding(nn.Module):
             prev_embedding = torch.einsum('aij->aji', prev_embedding)
         graph_embedding = torch.sum(curr_embedding, axis=2)
         graph_embedding = torch.einsum('ij->ji', graph_embedding)
-        graph_embedding = torch.matmul(self.W2, graph_embedding)
+        graph_embedding = torch.matmul(self.W2, graph_embedding) # [embedding_size, batch_size]
         return graph_embedding
 
 
@@ -79,6 +79,42 @@ class Gemini(nn.Module):
         return sim_score, g1_embedding, g2_embedding
 
 
+def run_epoch(model, dataloader, optimizer, criterion, device, training=True):
+    if training:
+        model.train()
+    else:
+        model.eval()
+    
+    epoch_loss = 0.0
+    preds, gts, probs = [], [], []
+    
+    with torch.set_grad_enabled(training):
+        for g1_adjmat, g1_featmat, g2_adjmat, g2_featmat, y in dataloader:
+            g1_adjmat, g1_featmat, g2_adjmat, g2_featmat, y = g1_adjmat.to(device), g1_featmat.to(
+                device), g2_adjmat.to(device), g2_featmat.to(device), y.to(torch.float32).to(device)
+            
+            if training:
+                optimizer.zero_grad()
+            outputs, _, _ = model(g1_adjmat, g1_featmat, g2_adjmat, g2_featmat)
+            loss = criterion(outputs, y)
+            
+            if training:
+                loss.backward()
+                optimizer.step()
+            
+            epoch_loss += loss.item()
+            probs.extend(outputs.cpu().data)
+            gts.extend(y.cpu().data)
+
+            predicted = [1 if i > 0.5 else 0 for i in outputs.data]
+            preds.extend(predicted)
+
+    epoch_loss /= len(dataloader)
+    accuracy = (np.array(preds) == np.array(gts)).sum() / len(gts)
+    auc = roc_auc_score(np.array(gts), np.array(probs))
+    return epoch_loss, accuracy, auc
+
+
 def train():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     train_dataloader, test_dataloader, valid_dataloader = dataloader_generate()
@@ -87,87 +123,18 @@ def train():
     optimizer = optim.Adam(model.parameters(), lr=config.learning_rate)
     criterion = nn.MSELoss()
 
-    # from utils import EarlyStopper
-    # early_stopper = EarlyStopper(patience=2, min_delta=0)
-
     for epoch in range(config.epochs):
-        model.train()
-        epoch_loss = 0.0
-        preds, gts, probs = [], [], []
-        for g1_adjmat, g1_featmat, g2_adjmat, g2_featmat, y in train_dataloader:
-            g1_adjmat, g1_featmat, g2_adjmat, g2_featmat, y = g1_adjmat.to(device), g1_featmat.to(
-                device), g2_adjmat.to(device), g2_featmat.to(device), y.to(torch.float32).to(device)
-            optimizer.zero_grad()
-            outputs, _, _ = model(g1_adjmat, g1_featmat, g2_adjmat, g2_featmat)
-            loss = criterion(outputs, y)
-            loss.backward()
-            optimizer.step()
-            epoch_loss += loss.item()
-            probs.extend(outputs.cpu().data)
-            gts.extend(y.cpu().data)
+        train_loss, train_accuracy, train_auc = run_epoch(model, train_dataloader, optimizer, criterion, device, training=True)
+        print("[Train] Epoch: %d, Loss: %f, Accuracy: %f, AUC: %f" % (epoch, train_loss, train_accuracy, train_auc))
 
-            predicted = [1 if i > 0.5 else 0 for i in outputs.data]
-            preds.extend(predicted)
+        valid_loss, valid_accuracy, valid_auc = run_epoch(model, valid_dataloader, None, criterion, device, training=False)
+        print("[Valid] Epoch: %d, Loss: %f, Accuracy: %f, AUC: %f" % (epoch, valid_loss, valid_accuracy, valid_auc))
 
-        epoch_loss /= len(train_dataloader)
-        accuracy = (np.array(preds) == np.array(gts)).sum() / len(gts)
-        auc = roc_auc_score(np.array(gts), np.array(probs))
-        print("[Train] Epoch: %d, Loss: %f, Accuracy: %f, AUC: %f" %
-              (epoch, epoch_loss, accuracy, auc))
+        test_loss, test_accuracy, test_auc = run_epoch(model, test_dataloader, None, criterion, device, training=False)
+        print("    [Test] Epoch: %d, Loss: %f, Accuracy: %f, AUC: %f" % (epoch, test_loss, test_accuracy, test_auc))
 
-        # valid
-        model.eval()
-        epoch_loss = 0.0
-        preds, gts, probs = [], [], []
-        with torch.no_grad():
-            for g1_adjmat, g1_featmat, g2_adjmat, g2_featmat, y in valid_dataloader:
-                g1_adjmat, g1_featmat, g2_adjmat, g2_featmat, y = g1_adjmat.to(device), g1_featmat.to(
-                    device), g2_adjmat.to(device), g2_featmat.to(device), y.to(torch.float32).to(device)
-                outputs, _, _ = model(g1_adjmat, g1_featmat, g2_adjmat, g2_featmat)
-                loss = criterion(outputs, y)
-                epoch_loss += loss.item()
-                probs.extend(outputs.cpu().data)
-                gts.extend(y.cpu().data)
-
-                predicted = [1 if i > 0.5 else 0 for i in outputs.data]
-                preds.extend(predicted)
-
-            epoch_loss /= len(valid_dataloader)
-            accuracy = (np.array(preds) == np.array(gts)).sum() / len(gts)
-            auc = roc_auc_score(np.array(gts), np.array(probs))
-            print("[Valid] Epoch: %d, Loss: %f, Accuracy: %f, AUC: %f" %
-                (epoch, epoch_loss, accuracy, auc))
-        
-
-        # test
-        model.eval()
-        epoch_loss = 0.0
-        preds, gts, probs = [], [], []
-        with torch.no_grad():
-            for g1_adjmat, g1_featmat, g2_adjmat, g2_featmat, y in test_dataloader:
-                g1_adjmat, g1_featmat, g2_adjmat, g2_featmat, y = g1_adjmat.to(device), g1_featmat.to(
-                    device), g2_adjmat.to(device), g2_featmat.to(device), y.to(torch.float32).to(device)
-                outputs, _, _ = model(g1_adjmat, g1_featmat, g2_adjmat, g2_featmat)
-                loss = criterion(outputs, y)
-                epoch_loss += loss.item()
-                probs.extend(outputs.cpu().data)
-                gts.extend(y.cpu().data)
-
-                predicted = [1 if i > 0.5 else 0 for i in outputs.data]
-                preds.extend(predicted)
-
-            epoch_loss /= len(test_dataloader)
-            accuracy = (np.array(preds) == np.array(gts)).sum() / len(gts)
-            auc = roc_auc_score(np.array(gts), np.array(probs))
-            print("        [Test] Epoch: %d, Loss: %f, Accuracy: %f, AUC: %f" %
-                (epoch, epoch_loss, accuracy, auc))
-    
     torch.save(model.state_dict(), config.Gemini_model_save_path)
 
-def load_model():
-    model = Gemini()
-    model.load_state_dict(torch.load(config.Gemini_model_save_path))
-    return model
 
 if __name__ == "__main__":
     train()

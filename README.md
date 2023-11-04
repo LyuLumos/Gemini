@@ -1,8 +1,12 @@
-# Gemini
+# BCSD
+
+
 
 ## Introduction
 
-This is the **unoffical** code for the paper "Gemini: Neural Network-based Graph Embedding for Cross-Platform Binary Code Similarity Detection", CCS 2017, Pytorch version.
+Some code for binary code similarity detection. Incude the following models:
+- [x] **Gemini**. This is the **unoffical** code for the paper "Gemini: Neural Network-based Graph Embedding for Cross-Platform Binary Code Similarity Detection", CCS 2017, Pytorch version.
+- [ ] SAFE
 
 
 
@@ -33,11 +37,10 @@ DiGraph with 3 nodes and 3 edges
 
 ## Performance
 
-![](loss_curve.png)
-
-```
-Accuracy: 0.774917, AUC: 0.876182
-```
+|Model|Acc|AUC|
+|:---:|:---:|:---:|
+|Gemini|0.774917|0.876182|
+|SAFE|||
 
 The dataset is very small (only `openssl-101f`), so the performance is not good as the paper.
 

@@ -5,20 +5,18 @@ optimizer = ["O0", "O1", "O2", "O3"]
 dir_name = "data/extracted-acfg/"
 
 
-Gemini_rawdata_dir = "data/extracted-acfg"
-Gemini_dataset_dir = "data/Gemini/"
-Gemini_feature_size = 9  # （max_constant_1,max_constant_2,num of strings,....）
-Gemini_model_save_path = "output/Gemini/model_weight"
-Gemini_figure_save_path = "output/Gemini/"
-Gemini_embedding_save_path = "output/Gemini/embeddings.pkl"
-
+rawdata_dir = "data/extracted-acfg"
+dataset_dir = "data/Gemini/"
+feature_size = 9  # （max_constant_1,max_constant_2,num of strings,....）
+model_save_path = "output/Gemini/model_weight"
+figure_save_path = "output/Gemini/"
+embedding_save_path = "output/Gemini/embeddings.pkl"
 
 
 max_nodes = 500
 min_nodes_threshold = 0
 Buffer_Size = 1000
 mini_batch = 8
-
 
 
 learning_rate = 0.0001

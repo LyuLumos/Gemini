@@ -17,6 +17,10 @@ def get_disasm(file_path):
 
 
 def get_corpus(folder_path):
+    arch = folder_path.split('/')[-1]
+    if os.path.exists(f'{arch}_corpus.pkl'):
+        print(f'[INFO] {arch}_corpus.pkl already exists.')
+        return
     corpus = {}
     for file in os.listdir(folder_path):
         if file.endswith('.dll'):
@@ -25,9 +29,8 @@ def get_corpus(folder_path):
         print(f'Processing {abs_file_path}...')
         corpus.update(get_disasm(abs_file_path))
 
-    if not os.path.exists('corpus.pkl'):
-        with open('corpus.pkl', 'wb') as f:
-            pickle.dump(corpus, f)
+    with open(f'{arch}_corpus.pkl', 'wb') as f:
+        pickle.dump(corpus, f)
     return corpus
 
 
@@ -54,12 +57,13 @@ def read_pkl(pkl_path):
     #     print(k, v)
     #     if i == 3:
     #         break
- 
+    # if type  of corpus is dict
     small_corpus = {}
-    for i, (k, v) in enumerate(corpus.items()):
-        small_corpus[k] = v
-        if i == 3:
-            break
+    if isinstance(corpus, dict):
+        for i, (k, v) in enumerate(corpus.items()):
+            small_corpus[k] = v
+            if i == 3:
+                break
     return corpus, small_corpus
 
 
@@ -99,8 +103,9 @@ def data_preprocess(corpus):
 
 
 if __name__ == '__main__':
-    # get_corpus('./data/x86')
-    corpus, small_corpus = read_pkl('corpus.pkl')
-    data_preprocess(corpus)
+    get_corpus('./data/x86')
+    get_corpus('./data/x64')
+    # corpus, small_corpus = read_pkl('corpus.pkl')
+    # data_preprocess(corpus)
 
     

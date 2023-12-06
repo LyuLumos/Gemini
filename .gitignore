@@ -1,5 +1,0 @@
-*.cfg
-__pycache__/
-data/extracted-acfg
-*.pkl
-output/

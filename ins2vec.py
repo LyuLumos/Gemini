@@ -32,6 +32,9 @@ from gensim.models import Word2Vec
 
 
 def instruct2vec():
+    if os.path.exists('instruct2vec.model'):
+        print('[INFO] instruct2vec.model already exists.')
+        return
     with open('tokens_list.pkl', 'rb') as f:
         tokens_list = pickle.load(f)
     print(f'tokens list: {tokens_list}')
@@ -47,6 +50,9 @@ def test_instruct2vec():
     print(f'[EXAMPLE] sahf: {vector}, shape: {vector.shape}')
 
 
+def inference():
+    model = Word2Vec.load('instruct2vec.model')
+    
 
 
 

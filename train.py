@@ -12,25 +12,15 @@ from data_process import read_pkl
 class BiLSTM(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers):
         super(BiLSTM, self).__init__()
-        self.input_size = input_size
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
-
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, bidirectional=True)
-        self.fc = nn.Linear(hidden_size * 2, 1)
-        self.sigmoid = nn.Sigmoid()
+        self.lstm = nn.LSTM(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers,
+                            batch_first=True, bidirectional=True)
 
     def forward(self, x):
         # x: [batch_size, seq_len, input_size]
-        # out: [batch_size, seq_len, hidden_size * 2]
-        # h_n: [num_layers * 2, batch_size, hidden_size]
-        # c_n: [num_layers * 2, batch_size, hidden_size]
+        # out: [batch_size, seq_len, hidden_size * num_directions]
+        # h_n: [num_layers * num_directions, batch_size, hidden_size]
+        # c_n: [num_layers * num_directions, batch_size, hidden_size]
         out, (h_n, c_n) = self.lstm(x)
-        # out: [batch_size, seq_len, hidden_size * 2]
-        # h_n: [num_layers * 2, batch_size, hidden_size]
-        # c_n: [num_layers * 2, batch_size, hidden_size]
-        out = self.fc(out)
-        out = self.sigmoid(out)
         return out
     
 
@@ -38,44 +28,39 @@ class Attention(nn.Module):
     def __init__(self, hidden_size):
         super(Attention, self).__init__()
         self.hidden_size = hidden_size
-
-        self.attention = nn.Linear(hidden_size * 2, 1)
+        self.att = nn.Linear(hidden_size * 2, 1)
         self.softmax = nn.Softmax(dim=1)
 
     def forward(self, x):
-        # x: [batch_size, seq_len, hidden_size * 2]
-        # attention: [batch_size, seq_len, 1]
-        attention = self.attention(x)
-        # attention: [batch_size, seq_len]
-        attention = self.softmax(attention.squeeze(2))
-        # x: [batch_size, hidden_size * 2]
-        x = torch.sum(x * attention.unsqueeze(2), dim=1)
-        return x
+        # x: [batch_size, seq_len, hidden_size * num_directions]
+        # att: [batch_size, seq_len, 1]
+        att = self.att(x)
+        # att: [batch_size, seq_len]
+        att = att.squeeze(2)
+        # att: [batch_size, seq_len]
+        att = self.softmax(att)
+        # att: [batch_size, seq_len, 1]
+        att = att.unsqueeze(2)
+        # out: [batch_size, hidden_size * num_directions]
+        out = torch.sum(x * att, dim=1)
+        return out
 
 
 class BiLSTMAttention(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers):
         super(BiLSTMAttention, self).__init__()
-        self.input_size = input_size
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
-
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, bidirectional=True)
-        self.attention = Attention(hidden_size)
-        self.fc = nn.Linear(hidden_size * 2, 1)
-        self.sigmoid = nn.Sigmoid()
+        self.bilstm = BiLSTM(input_size, hidden_size, num_layers)
+        self.att = Attention(hidden_size)
+        self.linear = nn.Linear(hidden_size * 2, 1)
 
     def forward(self, x):
         # x: [batch_size, seq_len, input_size]
-        # out: [batch_size, seq_len, hidden_size * 2]
-        # h_n: [num_layers * 2, batch_size, hidden_size]
-        # c_n: [num_layers * 2, batch_size, hidden_size]
-        out, (h_n, c_n) = self.lstm(x)
-        # out: [batch_size, hidden_size * 2]
-        out = self.attention(out)
+        # out: [batch_size, hidden_size * num_directions]
+        out = self.bilstm(x)
+        # out: [batch_size, hidden_size * num_directions]
+        out = self.att(out)
         # out: [batch_size, 1]
-        out = self.fc(out)
-        out = self.sigmoid(out)
+        out = self.linear(out)
         return out
 
 input_size = 10

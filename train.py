@@ -1,12 +1,11 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.nn.utils.rnn import pad_sequence
+from torch.utils.data import random_split, DataLoader
 from tqdm import tqdm
 
-from gen_dataset import BCSDDataset, get_dataloader
+from gen_dataset import BCSDDataset, collate_fn
 from data_process import read_pkl
-
 
 
 class BiLSTM(nn.Module):
@@ -63,6 +62,7 @@ class BiLSTMAttention(nn.Module):
         out = self.linear(out)
         return out
 
+
 input_size = 10
 hidden_size = 64 
 num_layers = 2
@@ -90,8 +90,9 @@ def train(model, dataLoaders, optimizer, criterion, device, num_epochs=10):
             optimizer.step()
 
             total_loss += loss.item()
-            total_cnt += labels.size(0).item()
-
+            total_cnt += labels.size(0)
+            # print(labels.size(0))
+        total_cnt = max(total_cnt, 1)
         print(f'Epoch: {epoch + 1}, Loss: {total_loss / total_cnt}')
 
 
@@ -99,8 +100,7 @@ def test(model, dataLoaders, device):
     model.eval()
     model.to(device)
     with torch.no_grad():
-        correct = 0
-        total = 0
+        correct, total = 0, 0
         for x86_func_names, x86_datas, x64_func_names, x64_datas, labels in dataLoaders:
             x86_datas = x86_datas.to(device)
             x64_datas = x64_datas.to(device)
@@ -114,56 +114,29 @@ def test(model, dataLoaders, device):
         print(f'Accuracy: {100 * correct / total}')
 
 
+def get_dataloader(x86_x64_pairs, batch_size=32, shuffle=True):
+    dataset = BCSDDataset(x86_x64_pairs)
+    train_size = int(0.8 * len(dataset))
+    test_size = len(dataset) - train_size
+    train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle, collate_fn=collate_fn)
+    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=shuffle, collate_fn=collate_fn)
+    return train_dataloader, test_dataloader
+
+
 def main():
     dataset, _ = read_pkl('x86_x64_pairs.pkl')
-    dataLoaders = get_dataloader(dataset, batch_size=4)
-    dataLoaders = post_process(dataLoaders)
+    train_dataloader, test_dataloader = get_dataloader(dataset, batch_size=32)
 
-    learning_rate = 0.001
+    learning_rate = 0.01
     num_epochs = 10
 
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-    criterion = nn.BCEWithLogitsLoss()
+    criterion = nn.CrossEntropyLoss()
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    train(model, dataLoaders, optimizer, criterion, device, num_epochs=num_epochs)
-    test(model, dataLoaders, device)
-
-
-def get_maxlen_and_minlen():
-    dataset, _ = read_pkl('x86_x64_pairs.pkl')
-    dataLoaders = get_dataloader(dataset, batch_size=4)
-    maxlen = 0
-    minlen = 100000
-    for _, x86_datas, _, x64_datas, _ in dataLoaders:
-        for x86_data in x86_datas:
-            maxlen = max(maxlen, x86_data.shape[1])
-            minlen = min(minlen, x86_data.shape[1])
-        for x64_data in x64_datas:
-            maxlen = max(maxlen, x64_data.shape[1])
-            minlen = min(minlen, x64_data.shape[1])
-    print(f'maxlen: {maxlen}, minlen: {minlen}')
-    # maxlen: 18693, minlen: 14
-
-
-def post_process(dataloader):
-    # 对长度超过1024的数据进行截断，对长度不足1024的数据进行padding
-    max_len = 1024
-
-    for x86_func_names, x86_datas, x64_func_names, x64_datas, labels in dataloader:
-        pad_x86_datas = torch.zeros(x86_datas.shape[0], max_len, x86_datas.shape[2])
-        pad_x64_datas = torch.zeros(x64_datas.shape[0], max_len, x64_datas.shape[2])
-        for i, (x86_data, x64_data) in enumerate(zip(x86_datas, x64_datas)):
-            if x86_data.shape[0] > max_len:
-                pad_x86_datas[i] = x86_data[:max_len]
-            else:
-                pad_x86_datas[i, :x86_data.shape[0]] = x86_data
-
-            if x64_data.shape[0] > max_len:
-                pad_x64_datas[i] = x64_data[:max_len]
-            else:
-                pad_x64_datas[i, :x64_data.shape[0]] = x64_data
-        yield x86_func_names, pad_x86_datas, x64_func_names, pad_x64_datas, labels
+    train(model, train_dataloader, optimizer, criterion, device, num_epochs=num_epochs)
+    test(model, test_dataloader, device)
 
 
 if __name__ == '__main__':

@@ -107,7 +107,7 @@ def test(model, dataLoaders, device):
             labels = labels.to(device).float()
 
             outputs = model(x86_datas).flatten()
-            predicted = torch.round(torch.sigmoid(outputs))
+            predicted = torch.round(outputs)
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
 
@@ -128,11 +128,11 @@ def main():
     dataset, _ = read_pkl('x86_x64_pairs.pkl')
     train_dataloader, test_dataloader = get_dataloader(dataset, batch_size=32)
 
-    learning_rate = 0.01
+    learning_rate = 0.001
     num_epochs = 10
 
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.BCEWithLogitsLoss()
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     train(model, train_dataloader, optimizer, criterion, device, num_epochs=num_epochs)

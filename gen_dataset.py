@@ -6,7 +6,6 @@ from gensim.models import Word2Vec
 import torch.nn as nn
 import torch
 from data_process import read_pkl, asmlist2tokens
-from train import get_dataloader
 
 
 def gen_pairs(x86_corpus, x64_corpus, save_path):
@@ -95,6 +94,8 @@ def get_maxlen_and_minlen():
 
 
 if __name__ == '__main__':
+    
+    from train import get_dataloader
     # x86_corpus, x86_small_corpus = read_pkl('x86_corpus.pkl')
     # x64_corpus, x64_small_corpus = read_pkl('x64_corpus.pkl')
     # print(f'x86 corpus size: {len(x86_corpus)}')

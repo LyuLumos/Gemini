@@ -60,9 +60,9 @@ def train():
         print("[Valid] Epoch: %d, Loss: %f, Accuracy: %f, AUC: %f" % (epoch, valid_loss, valid_accuracy, valid_auc))
 
         test_loss, test_accuracy, test_auc = run_epoch(model, test_dataloader, None, criterion, device, training=False)
-        print("    [Test] Epoch: %d, Loss: %f, Accuracy: %f, AUC: %f" % (epoch, test_loss, test_accuracy, test_auc))
+        print("[Test] Epoch: %d, Loss: %f, Accuracy: %f, AUC: %f" % (epoch, test_loss, test_accuracy, test_auc))
 
-    torch.save(model.state_dict(), config.Gemini_model_save_path)
+    torch.save(model.state_dict(), config.model_save_path)
 
 
 if __name__ == "__main__":

@@ -1,14 +1,14 @@
 from train import Gemini
-import config
+from configs import gemini_config as config
 import torch
 import numpy as np
-from data_processing import StrToBytes, zero_padded_adjmat, feature_vector
+from datasets.gemini_processing import StrToBytes, zero_padded_adjmat, feature_vector
 import pickle
 
 
 def load_model():
     model = Gemini()
-    model.load_state_dict(torch.load(config.Gemini_model_save_path))
+    model.load_state_dict(torch.load(config.model_save_path))
     return model
 
 
@@ -46,7 +46,7 @@ def emebdding_generate(model, func_dict):
 
 
 def save_embedding(embedding_dict):
-    with open(config.Gemini_embedding_save_path, "wb") as f:
+    with open(config.embedding_save_path, "wb") as f:
         pickle.dump(embedding_dict, f)
     print("Embedding saved.")
 

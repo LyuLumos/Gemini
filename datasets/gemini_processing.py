@@ -48,7 +48,7 @@ def dataset_split(all_function_dict):
     valid_size = len(all_func_list) - train_size - test_size
     train_func, test_func, valid_func = random_split(all_func_list, [train_size, test_size, valid_size])
     for type, dataset in zip(["train", "test", "valid"], [train_func, test_func, valid_func]):
-        with open(config.Gemini_dataset_dir + type, "wb") as f:
+        with open(config.dataset_dir + type, "wb") as f:
             pickle.dump(dict(dataset), f)
     print(
         f"train dataset's num={len(train_func)} , valid dataset's num={len(valid_func)} , test dataset's num ={len(test_func)}"
@@ -69,11 +69,11 @@ def zero_padded_adjmat(graph, size):
 
 
 def feature_vector(graph, size):
-    feature_mat = np.zeros((size, 9))
+    feature_mat = np.zeros((size, config.feature_size))
     for _node in graph.nodes:
         if _node == size:
             break
-        feature = np.zeros((1, 9))
+        feature = np.zeros((1, config.feature_size))
         vector = graph.nodes[_node]['v']
         num_const = vector[0]
         if len(num_const) == 1:
